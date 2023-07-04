@@ -25,7 +25,6 @@ const getUserWithEmail = function(email) {
   return pool
     .query(query, passedVars)
     .then((result) => {
-      console.log("result.rows[0]:", result.rows[0]);
       return result.rows[0];
     })
     .catch((err) => {
@@ -77,8 +76,37 @@ const addUser = function(user) {
  * @param {string} guest_id The id of the user.
  * @return {Promise<[{}]>} A promise to the reservations.
  */
+
 const getAllReservations = function(guest_id, limit = 10) {
-  return getAllProperties(null, 2);
+  const passedVars = [guest_id, limit];
+  const query = `
+    SELECT 
+      reservations.id, 
+      reservations.start_date, 
+      avg(rating) as average_rating, 
+      properties.title, 
+      properties.cost_per_night, 
+      properties.thumbnail_photo_url, 
+      properties.parking_spaces, 
+      properties.number_of_bathrooms, 
+      properties.number_of_bedrooms
+    FROM property_reviews
+      JOIN properties ON property_id = properties.id
+      JOIN reservations ON reservation_id = reservations.id
+    WHERE reservations.guest_id = $1
+    GROUP BY reservations.id, properties.id
+    ORDER BY reservations.start_date DESC
+    LIMIT $2
+  `;
+
+  return pool
+    .query(query, passedVars)
+    .then((result) => {
+      return result.rows;
+    })
+    .catch((err) => {
+      console.log(err.message);
+    });
 };
 
 /// Properties
@@ -100,10 +128,7 @@ const getAllProperties = function(options, limit = 10) {
   return pool
     .query(query, passedVars)
     .then((result) => { 
-      console.log("Here are some rows:", result.rows);
-      
       return result.rows;
-
     })
     .catch((err) => {
       console.log(err.message);
